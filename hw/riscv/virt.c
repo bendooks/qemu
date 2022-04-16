@@ -303,9 +303,6 @@ static void create_fdt_socket_clint(RISCVVirtState *s,
     uint32_t *clint_cells;
     unsigned long clint_addr;
     MachineState *mc = MACHINE(s);
-    static const char * const clint_compat[2] = {
-        "sifive,clint0", "riscv,clint0"
-    };
 
     clint_cells = g_new0(uint32_t, s->soc[socket].num_harts * 4);
 
@@ -319,9 +316,8 @@ static void create_fdt_socket_clint(RISCVVirtState *s,
     clint_addr = memmap[VIRT_CLINT].base + (memmap[VIRT_CLINT].size * socket);
     clint_name = g_strdup_printf("/soc/clint@%lx", clint_addr);
     qemu_fdt_add_subnode(mc->fdt, clint_name);
-    qemu_fdt_setprop_string_array(mc->fdt, clint_name, "compatible",
-                                  (char **)&clint_compat,
-                                  ARRAY_SIZE(clint_compat));
+    qemu_fdt_setprop_strings(mc->fdt, clint_name, "compatible",
+                             "sifive,clint0", "riscv,clint0");
     qemu_fdt_setprop_cells(mc->fdt, clint_name, "reg",
         0x0, clint_addr, 0x0, memmap[VIRT_CLINT].size);
     qemu_fdt_setprop(mc->fdt, clint_name, "interrupts-extended",
@@ -430,9 +426,6 @@ static void create_fdt_socket_plic(RISCVVirtState *s,
     uint32_t *plic_cells;
     unsigned long plic_addr;
     MachineState *mc = MACHINE(s);
-    static const char * const plic_compat[2] = {
-        "sifive,plic-1.0.0", "riscv,plic0"
-    };
 
     if (kvm_enabled()) {
         plic_cells = g_new0(uint32_t, s->soc[socket].num_harts * 2);
@@ -460,9 +453,8 @@ static void create_fdt_socket_plic(RISCVVirtState *s,
         "#interrupt-cells", FDT_PLIC_INT_CELLS);
     qemu_fdt_setprop_cell(mc->fdt, plic_name,
         "#address-cells", FDT_PLIC_ADDR_CELLS);
-    qemu_fdt_setprop_string_array(mc->fdt, plic_name, "compatible",
-                                  (char **)&plic_compat,
-                                  ARRAY_SIZE(plic_compat));
+    qemu_fdt_setprop_strings(mc->fdt, plic_name, "compatible",
+                             "sifive,plic-1.0.0", "riscv,plic0");
     qemu_fdt_setprop(mc->fdt, plic_name, "interrupt-controller", NULL, 0);
     qemu_fdt_setprop(mc->fdt, plic_name, "interrupts-extended",
         plic_cells, s->soc[socket].num_harts * sizeof(uint32_t) * 4);
@@ -890,13 +882,8 @@ static void create_fdt_reset(RISCVVirtState *s, const MemMapEntry *memmap,
     name = g_strdup_printf("/soc/test@%lx",
         (long)memmap[VIRT_TEST].base);
     qemu_fdt_add_subnode(mc->fdt, name);
-    {
-        static const char * const compat[3] = {
-            "sifive,test1", "sifive,test0", "syscon"
-        };
-        qemu_fdt_setprop_string_array(mc->fdt, name, "compatible",
-                                      (char **)&compat, ARRAY_SIZE(compat));
-    }
+    qemu_fdt_setprop_strings(mc->fdt, name, "compatible",
+                             "sifive,test1", "sifive,test0", "syscon");
     qemu_fdt_setprop_cells(mc->fdt, name, "reg",
         0x0, memmap[VIRT_TEST].base, 0x0, memmap[VIRT_TEST].size);
     qemu_fdt_setprop_cell(mc->fdt, name, "phandle", test_phandle);
