@@ -153,7 +153,6 @@ static void fdt_add_timer_nodes(VersalVirt *s)
 
 static void fdt_add_usb_xhci_nodes(VersalVirt *s)
 {
-    const char clocknames[] = "bus_clk\0ref_clk";
     const char irq_name[] = "dwc_usb3";
     const char compatVersalDWC3[] = "xlnx,versal-dwc3";
     const char compatDWC3[] = "snps,dwc3";
@@ -165,8 +164,8 @@ static void fdt_add_usb_xhci_nodes(VersalVirt *s)
     qemu_fdt_setprop_sized_cells(s->fdt, name, "reg",
                                  2, MM_USB2_CTRL_REGS,
                                  2, MM_USB2_CTRL_REGS_SIZE);
-    qemu_fdt_setprop(s->fdt, name, "clock-names",
-                         clocknames, sizeof(clocknames));
+    qemu_fdt_setprop_strings(s->fdt, name, "clock-names",
+                             "bus_clk", "ref_clk");
     qemu_fdt_setprop_cells(s->fdt, name, "clocks",
                                s->phandle.clk_25Mhz, s->phandle.clk_125Mhz);
     qemu_fdt_setprop(s->fdt, name, "ranges", NULL, 0);
@@ -205,8 +204,6 @@ static void fdt_add_uart_nodes(VersalVirt *s)
 {
     uint64_t addrs[] = { MM_UART1, MM_UART0 };
     unsigned int irqs[] = { VERSAL_UART1_IRQ_0, VERSAL_UART0_IRQ_0 };
-    const char compat[] = "arm,pl011\0arm,sbsa-uart";
-    const char clocknames[] = "uartclk\0apb_pclk";
     int i;
 
     for (i = 0; i < ARRAY_SIZE(addrs); i++) {
@@ -215,16 +212,16 @@ static void fdt_add_uart_nodes(VersalVirt *s)
         qemu_fdt_setprop_cell(s->fdt, name, "current-speed", 115200);
         qemu_fdt_setprop_cells(s->fdt, name, "clocks",
                                s->phandle.clk_125Mhz, s->phandle.clk_125Mhz);
-        qemu_fdt_setprop(s->fdt, name, "clock-names",
-                         clocknames, sizeof(clocknames));
+        qemu_fdt_setprop_strings(s->fdt, name, "clock-names",
+                                 "uartclk", "apb_pclk");
 
         qemu_fdt_setprop_cells(s->fdt, name, "interrupts",
                                GIC_FDT_IRQ_TYPE_SPI, irqs[i],
                                GIC_FDT_IRQ_FLAGS_LEVEL_HI);
         qemu_fdt_setprop_sized_cells(s->fdt, name, "reg",
                                      2, addrs[i], 2, 0x1000);
-        qemu_fdt_setprop(s->fdt, name, "compatible",
-                         compat, sizeof(compat));
+        qemu_fdt_setprop_strings(s->fdt, name, "compatible",
+                                 "arm,pl011", "arm,sbsa-uart");
         qemu_fdt_setprop(s->fdt, name, "u-boot,dm-pre-reloc", NULL, 0);
 
         if (addrs[i] == MM_UART0) {
@@ -251,8 +248,6 @@ static void fdt_add_gem_nodes(VersalVirt *s)
 {
     uint64_t addrs[] = { MM_GEM1, MM_GEM0 };
     unsigned int irqs[] = { VERSAL_GEM1_IRQ_0, VERSAL_GEM0_IRQ_0 };
-    const char clocknames[] = "pclk\0hclk\0tx_clk\0rx_clk";
-    const char compat_gem[] = "cdns,zynqmp-gem\0cdns,gem";
     int i;
 
     for (i = 0; i < ARRAY_SIZE(addrs); i++) {
@@ -266,8 +261,8 @@ static void fdt_add_gem_nodes(VersalVirt *s)
         qemu_fdt_setprop_cells(s->fdt, name, "clocks",
                                s->phandle.clk_25Mhz, s->phandle.clk_25Mhz,
                                s->phandle.clk_125Mhz, s->phandle.clk_125Mhz);
-        qemu_fdt_setprop(s->fdt, name, "clock-names",
-                         clocknames, sizeof(clocknames));
+        qemu_fdt_setprop_strings(s->fdt, name, "clock-names",
+                                 "pclk", "hclk","tx_clk", "rx_clk");
         qemu_fdt_setprop_cells(s->fdt, name, "interrupts",
                                GIC_FDT_IRQ_TYPE_SPI, irqs[i],
                                GIC_FDT_IRQ_FLAGS_LEVEL_HI,
@@ -275,8 +270,8 @@ static void fdt_add_gem_nodes(VersalVirt *s)
                                GIC_FDT_IRQ_FLAGS_LEVEL_HI);
         qemu_fdt_setprop_sized_cells(s->fdt, name, "reg",
                                      2, addrs[i], 2, 0x1000);
-        qemu_fdt_setprop(s->fdt, name, "compatible",
-                         compat_gem, sizeof(compat_gem));
+        qemu_fdt_setprop_strings(s->fdt, name, "compatible",
+                                 "cdns,zynqmp-gem", "cdns,gem");
         qemu_fdt_setprop_cell(s->fdt, name, "#address-cells", 1);
         qemu_fdt_setprop_cell(s->fdt, name, "#size-cells", 0);
         g_free(name);
@@ -285,8 +280,6 @@ static void fdt_add_gem_nodes(VersalVirt *s)
 
 static void fdt_add_zdma_nodes(VersalVirt *s)
 {
-    const char clocknames[] = "clk_main\0clk_apb";
-    const char compat[] = "xlnx,zynqmp-dma-1.0";
     int i;
 
     for (i = XLNX_VERSAL_NR_ADMAS - 1; i >= 0; i--) {
@@ -298,22 +291,21 @@ static void fdt_add_zdma_nodes(VersalVirt *s)
         qemu_fdt_setprop_cell(s->fdt, name, "xlnx,bus-width", 64);
         qemu_fdt_setprop_cells(s->fdt, name, "clocks",
                                s->phandle.clk_25Mhz, s->phandle.clk_25Mhz);
-        qemu_fdt_setprop(s->fdt, name, "clock-names",
-                         clocknames, sizeof(clocknames));
+        qemu_fdt_setprop_strings(s->fdt, name, "clock-names",
+                                 "clk_main", "clk_apb");
         qemu_fdt_setprop_cells(s->fdt, name, "interrupts",
                                GIC_FDT_IRQ_TYPE_SPI, VERSAL_ADMA_IRQ_0 + i,
                                GIC_FDT_IRQ_FLAGS_LEVEL_HI);
         qemu_fdt_setprop_sized_cells(s->fdt, name, "reg",
                                      2, addr, 2, 0x1000);
-        qemu_fdt_setprop(s->fdt, name, "compatible", compat, sizeof(compat));
+        qemu_fdt_setprop_string(s->fdt, name, "compatible",
+                                "xlnx,zynqmp-dma-1.0");
         g_free(name);
     }
 }
 
 static void fdt_add_sd_nodes(VersalVirt *s)
 {
-    const char clocknames[] = "clk_xin\0clk_ahb";
-    const char compat[] = "arasan,sdhci-8.9a";
     int i;
 
     for (i = ARRAY_SIZE(s->soc.pmc.iou.sd) - 1; i >= 0; i--) {
@@ -324,22 +316,21 @@ static void fdt_add_sd_nodes(VersalVirt *s)
 
         qemu_fdt_setprop_cells(s->fdt, name, "clocks",
                                s->phandle.clk_25Mhz, s->phandle.clk_25Mhz);
-        qemu_fdt_setprop(s->fdt, name, "clock-names",
-                         clocknames, sizeof(clocknames));
+        qemu_fdt_setprop_strings(s->fdt, name, "clock-names",
+                                 "clk_xin", "clk_ahb");
         qemu_fdt_setprop_cells(s->fdt, name, "interrupts",
                                GIC_FDT_IRQ_TYPE_SPI, VERSAL_SD0_IRQ_0 + i * 2,
                                GIC_FDT_IRQ_FLAGS_LEVEL_HI);
         qemu_fdt_setprop_sized_cells(s->fdt, name, "reg",
                                      2, addr, 2, MM_PMC_SD0_SIZE);
-        qemu_fdt_setprop(s->fdt, name, "compatible", compat, sizeof(compat));
+        qemu_fdt_setprop_string(s->fdt, name, "compatible",
+                                "arasan,sdhci-8.9a");
         g_free(name);
     }
 }
 
 static void fdt_add_rtc_node(VersalVirt *s)
 {
-    const char compat[] = "xlnx,zynqmp-rtc";
-    const char interrupt_names[] = "alarm\0sec";
     char *name = g_strdup_printf("/rtc@%x", MM_PMC_RTC);
 
     qemu_fdt_add_subnode(s->fdt, name);
@@ -349,11 +340,11 @@ static void fdt_add_rtc_node(VersalVirt *s)
                            GIC_FDT_IRQ_FLAGS_LEVEL_HI,
                            GIC_FDT_IRQ_TYPE_SPI, VERSAL_RTC_SECONDS_IRQ,
                            GIC_FDT_IRQ_FLAGS_LEVEL_HI);
-    qemu_fdt_setprop(s->fdt, name, "interrupt-names",
-                     interrupt_names, sizeof(interrupt_names));
+    qemu_fdt_setprop_strings(s->fdt, name, "interrupt-names",
+                             "alarm", "sec");
     qemu_fdt_setprop_sized_cells(s->fdt, name, "reg",
                                  2, MM_PMC_RTC, 2, MM_PMC_RTC_SIZE);
-    qemu_fdt_setprop(s->fdt, name, "compatible", compat, sizeof(compat));
+    qemu_fdt_setprop_string(s->fdt, name, "compatible", "xlnx,zynqmp-rtc");
     g_free(name);
 }
 
