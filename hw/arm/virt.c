@@ -344,9 +344,8 @@ static void fdt_add_timer_nodes(const VirtMachineState *vms)
 
     armcpu = ARM_CPU(qemu_get_cpu(0));
     if (arm_feature(&armcpu->env, ARM_FEATURE_V8)) {
-        const char compat[] = "arm,armv8-timer\0arm,armv7-timer";
-        qemu_fdt_setprop(ms->fdt, "/timer", "compatible",
-                         compat, sizeof(compat));
+        qemu_fdt_setprop_strings(ms->fdt, "/timer", "compatible",
+                                 "arm,armv8-timer", "arm,armv7-timer");
     } else {
         qemu_fdt_setprop_string(ms->fdt, "/timer", "compatible",
                                 "arm,armv7-timer");
@@ -844,8 +843,6 @@ static void create_uart(const VirtMachineState *vms, int uart,
     hwaddr base = vms->memmap[uart].base;
     hwaddr size = vms->memmap[uart].size;
     int irq = vms->irqmap[uart];
-    const char compat[] = "arm,pl011\0arm,primecell";
-    const char clocknames[] = "uartclk\0apb_pclk";
     DeviceState *dev = qdev_new(TYPE_PL011);
     SysBusDevice *s = SYS_BUS_DEVICE(dev);
     MachineState *ms = MACHINE(vms);
@@ -859,8 +856,8 @@ static void create_uart(const VirtMachineState *vms, int uart,
     nodename = g_strdup_printf("/pl011@%" PRIx64, base);
     qemu_fdt_add_subnode(ms->fdt, nodename);
     /* Note that we can't use setprop_string because of the embedded NUL */
-    qemu_fdt_setprop(ms->fdt, nodename, "compatible",
-                         compat, sizeof(compat));
+    qemu_fdt_setprop_strings(ms->fdt, nodename, "compatible",
+                             "arm,pl011", "arm,primecell");
     qemu_fdt_setprop_sized_cells(ms->fdt, nodename, "reg",
                                      2, base, 2, size);
     qemu_fdt_setprop_cells(ms->fdt, nodename, "interrupts",
@@ -868,8 +865,8 @@ static void create_uart(const VirtMachineState *vms, int uart,
                                GIC_FDT_IRQ_FLAGS_LEVEL_HI);
     qemu_fdt_setprop_cells(ms->fdt, nodename, "clocks",
                                vms->clock_phandle, vms->clock_phandle);
-    qemu_fdt_setprop(ms->fdt, nodename, "clock-names",
-                         clocknames, sizeof(clocknames));
+    qemu_fdt_setprop_strings(ms->fdt, nodename, "clock-names",
+                             "uartclk", "apb_pclk");
 
     if (uart == VIRT_UART) {
         qemu_fdt_setprop_string(ms->fdt, "/chosen", "stdout-path", nodename);
@@ -891,14 +888,14 @@ static void create_rtc(const VirtMachineState *vms)
     hwaddr base = vms->memmap[VIRT_RTC].base;
     hwaddr size = vms->memmap[VIRT_RTC].size;
     int irq = vms->irqmap[VIRT_RTC];
-    const char compat[] = "arm,pl031\0arm,primecell";
     MachineState *ms = MACHINE(vms);
 
     sysbus_create_simple("pl031", base, qdev_get_gpio_in(vms->gic, irq));
 
     nodename = g_strdup_printf("/pl031@%" PRIx64, base);
     qemu_fdt_add_subnode(ms->fdt, nodename);
-    qemu_fdt_setprop(ms->fdt, nodename, "compatible", compat, sizeof(compat));
+    qemu_fdt_setprop_strings(ms->fdt, nodename, "compatible",
+                             "arm,pl031", "arm,primecell");
     qemu_fdt_setprop_sized_cells(ms->fdt, nodename, "reg",
                                  2, base, 2, size);
     qemu_fdt_setprop_cells(ms->fdt, nodename, "interrupts",
@@ -984,7 +981,6 @@ static void create_gpio_devices(const VirtMachineState *vms, int gpio,
     hwaddr base = vms->memmap[gpio].base;
     hwaddr size = vms->memmap[gpio].size;
     int irq = vms->irqmap[gpio];
-    const char compat[] = "arm,pl061\0arm,primecell";
     SysBusDevice *s;
     MachineState *ms = MACHINE(vms);
 
@@ -1002,7 +998,8 @@ static void create_gpio_devices(const VirtMachineState *vms, int gpio,
     qemu_fdt_add_subnode(ms->fdt, nodename);
     qemu_fdt_setprop_sized_cells(ms->fdt, nodename, "reg",
                                  2, base, 2, size);
-    qemu_fdt_setprop(ms->fdt, nodename, "compatible", compat, sizeof(compat));
+    qemu_fdt_setprop_strings(ms->fdt, nodename, "compatible",
+                             "arm,pl061", "arm,primecell");
     qemu_fdt_setprop_cell(ms->fdt, nodename, "#gpio-cells", 2);
     qemu_fdt_setprop(ms->fdt, nodename, "gpio-controller", NULL, 0);
     qemu_fdt_setprop_cells(ms->fdt, nodename, "interrupts",
@@ -1326,7 +1323,6 @@ static void create_smmu(const VirtMachineState *vms,
     int i;
     hwaddr base = vms->memmap[VIRT_SMMU].base;
     hwaddr size = vms->memmap[VIRT_SMMU].size;
-    const char irq_names[] = "eventq\0priq\0cmdq-sync\0gerror";
     DeviceState *dev;
     MachineState *ms = MACHINE(vms);
 
@@ -1356,8 +1352,8 @@ static void create_smmu(const VirtMachineState *vms,
             GIC_FDT_IRQ_TYPE_SPI, irq + 2, GIC_FDT_IRQ_FLAGS_EDGE_LO_HI,
             GIC_FDT_IRQ_TYPE_SPI, irq + 3, GIC_FDT_IRQ_FLAGS_EDGE_LO_HI);
 
-    qemu_fdt_setprop(ms->fdt, node, "interrupt-names", irq_names,
-                     sizeof(irq_names));
+    qemu_fdt_setprop_strings(ms->fdt, node, "interrupt-names",
+                             "eventq", "priq", "cmdq-sync", "gerror");
 
     qemu_fdt_setprop_cell(ms->fdt, node, "clocks", vms->clock_phandle);
     qemu_fdt_setprop_string(ms->fdt, node, "clock-names", "apb_pclk");
