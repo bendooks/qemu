@@ -56,18 +56,15 @@ static void loader_insert_platform_data(GuestLoaderState *s, int size,
     qemu_fdt_setprop(fdt, node, "reg", &reg_attr, sizeof(reg_attr));
 
     if (s->kernel) {
-        const char *compat[2] = { "multiboot,module", "multiboot,kernel" };
-        qemu_fdt_setprop_string_array(fdt, node, "compatible",
-                                      (char **) &compat,
-                                      ARRAY_SIZE(compat));
+        qemu_fdt_setprop_strings(fdt, node, "compatible",
+                                 "multiboot,module", "multiboot,kernel");
+
         if (s->args) {
             qemu_fdt_setprop_string(fdt, node, "bootargs", s->args);
         }
     } else if (s->initrd) {
-        const char *compat[2] = { "multiboot,module", "multiboot,ramdisk" };
-        qemu_fdt_setprop_string_array(fdt, node, "compatible",
-                                      (char **) &compat,
-                                      ARRAY_SIZE(compat));
+        qemu_fdt_setprop_strings(fdt, node, "compatible",
+                                 "multiboot,module", "multiboot,ramdisk");
     }
 }
 
